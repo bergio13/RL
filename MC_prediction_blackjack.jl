@@ -92,9 +92,13 @@ function mc_prediction(num_episodes::Int, player_policy_threshold::Int)
         episode = play_episode(player_policy_threshold)
         visited_states = Set{Tuple{Int,Int,Bool}}()
 
-
-        G = episode[end][2] # Reward is the return at the end of the episode
-        for (state, _) in episode
+        G = 0.0
+        for t in length(episode):-1:1
+            state, reward = episode[t]
+            if isnothing(reward)
+                reward = 0
+            end
+            G += reward
             if state ∉ visited_states
                 s = get!(returns_sum, state, 0)
                 c = get!(returns_count, state, 0)
@@ -155,7 +159,7 @@ end
 
 
 @time V = mc_prediction(50_000, 20)
-@time V = mc_prediction_alpha(50000, 20, 0.1)
+@time V = mc_prediction_alpha(50000, 20, 0.01)
 
 
 # Filter for reasonable player sums
