@@ -108,7 +108,7 @@ function mc_control(num_episodes::Int, epsilon::Float64)
 
             # Sample action based on probabilities
             chosen_index = rand(Categorical([action_probs[a] for a in actions]))  # Returns index (1 or 2)
-            return actions[chosen_index]  # Conv
+            return actions[chosen_index]  # Convert index to action (0 or 1)
         end
 
         # Generate episode
@@ -142,7 +142,7 @@ function mc_control(num_episodes::Int, epsilon::Float64)
 end
 
 # Run MC Control
-@time Q, optimal_policy = mc_control(15_000_000, 0.05)
+@time Q, optimal_policy = mc_control(20_000_000, 0.01)
 
 function simulate_games(optimal_policy, num_episodes)
     total_reward = 0.0
@@ -161,10 +161,6 @@ function simulate_games(optimal_policy, num_episodes)
     average_reward = total_reward / num_episodes
     return average_reward
 end
-
-
-average = simulate_games(optimal_policy, 100_000)
-println("Average reward over 100,000 games: ", round(average, digits=3))
 
 function detailed_simulation(optimal_policy, num_episodes)
     wins = 0
@@ -194,30 +190,39 @@ function detailed_simulation(optimal_policy, num_episodes)
     println("Draws:  ", draws, " (", round(100 * draws / num_episodes, digits=1), "%)")
 end
 
-detailed_simulation(optimal_policy, 100_000)
+# Plot the optimal policy
+function plot_policy(optimal_policy)
+    player_sums = 11:21
+    dealer_cards = 1:10
 
-# Prepare policy matrices
-player_sums = 11:21
-dealer_cards = 1:10
-usable_ace_grid = zeros(Int, length(player_sums), length(dealer_cards))
-non_usable_ace_grid = zeros(Int, length(player_sums), length(dealer_cards))
+    # Prepare policy matrices
+    usable_ace_grid = zeros(Int, length(player_sums), length(dealer_cards))
+    non_usable_ace_grid = zeros(Int, length(player_sums), length(dealer_cards))
 
-for (i, p_sum) in enumerate(player_sums)
-    for (j, d_card) in enumerate(dealer_cards)
-        # Usable Ace
-        state_usable = (p_sum, d_card, true)
-        usable_ace_grid[i, j] = get(optimal_policy, state_usable, 1)
-        # Non-Usable Ace
-        state_non_usable = (p_sum, d_card, false)
-        non_usable_ace_grid[i, j] = get(optimal_policy, state_non_usable, 1)
+    for (i, p_sum) in enumerate(player_sums)
+        for (j, d_card) in enumerate(dealer_cards)
+            # Usable Ace
+            state_usable = (p_sum, d_card, true)
+            usable_ace_grid[i, j] = get(optimal_policy, state_usable, 1)
+            # Non-Usable Ace
+            state_non_usable = (p_sum, d_card, false)
+            non_usable_ace_grid[i, j] = get(optimal_policy, state_non_usable, 1)
+        end
     end
+
+    # Plot heatmaps
+    p1 = heatmap(dealer_cards, player_sums, usable_ace_grid, title="Usable Ace Policy",
+        xlabel="Dealer Card", ylabel="Player Sum", color=:viridis, clim=(0, 1))
+    p2 = heatmap(dealer_cards, player_sums, non_usable_ace_grid, title="No Usable Ace Policy",
+        xlabel="Dealer Card", ylabel="Player Sum", color=:viridis, clim=(0, 1))
+    plot(p1, p2, layout=(1, 2), size=(800, 400))
 end
 
-# Plot heatmaps
-p1 = heatmap(dealer_cards, player_sums, usable_ace_grid, title="Usable Ace Policy",
-    xlabel="Dealer Card", ylabel="Player Sum", color=:viridis, clim=(0, 1))
-p2 = heatmap(dealer_cards, player_sums, non_usable_ace_grid, title="No Usable Ace Policy",
-    xlabel="Dealer Card", ylabel="Player Sum", color=:viridis, clim=(0, 1))
-plot(p1, p2, layout=(1, 2), size=(800, 400))
 
+# Play games and evaluate the policy
+average = simulate_games(optimal_policy, 100_000)
+println("Average reward over 100,000 games: ", round(average, digits=3))
+detailed_simulation(optimal_policy, 100_000)
 
+# Visualize the optimal policy
+plot_policy(optimal_policy)
