@@ -79,83 +79,36 @@ function play_episode(player_policy_threshold=17)
     return episode
 end
 
-
-"""
-Perform First Visit Monte Carlo Prediction for Black Jack policy
-"""
-function mc_prediction(num_episodes::Int, player_policy_threshold::Int)
-    returns_sum = Dict()
-    returns_count = Dict()
-    V = Dict()
-
-    for _ in 1:num_episodes
-        episode = play_episode(player_policy_threshold)
-        visited_states = Set{Tuple{Int,Int,Bool}}()
-
-
-        G = episode[end][2] # Reward is the return at the end of the episode
-        for (state, _) in episode
-            if state ∉ visited_states
-                s = get!(returns_sum, state, 0)
-                c = get!(returns_count, state, 0)
-                returns_sum[state] = s + G
-                returns_count[state] = c + 1
-                V[state] = returns_sum[state] / returns_count[state]
-                push!(visited_states, state)
-            end
-        end
-    end
-    return V
-end
-
-function mc_prediction_alpha(num_episodes::Int, player_policy_threshold::Int, α::Float64)
+function td_prediction(num_episodes::Int, player_policy_threshold::Int, α::Float64)
     V = Dict{Tuple{Int,Int,Bool},Float64}()  # State value function
     default_value = 0.0  # Initialize unseen states to 0
 
     for _ in 1:num_episodes
         episode = play_episode(player_policy_threshold)
-        visited_states = Set{Tuple{Int,Int,Bool}}()  # Track first visits
-        G = 0.0  # Initialize return
+        for t in 1:length(episode)-1  # Iterate through non-terminal states
+            # Current state (s_t) and next state (s_{t+1})
+            state = episode[t][1]
+            next_state = episode[t+1][1]
 
-        # Iterate backward through the episode
-        for t in length(episode):-1:1
-            state, reward = episode[t]
-            if isnothing(reward)
-                reward = 0
-            end
-            G += reward  # Accumulate return from terminal state backward
+            # TD target: R_t + γ * V(s_{t+1})
+            # In Blackjack, R_t = 0 for all non-terminal transitions and γ = 1
+            target = 0 + get(V, next_state, default_value)
 
-            # First-visit: Update only the first occurrence of the state
-            if state ∉ visited_states
-                current_v = get(V, state, default_value)
-                V[state] = current_v + α * (G - current_v)
-                push!(visited_states, state)
-            end
+            # TD update: V(s_t) ← V(s_t) + α * [target - V(s_t)]
+            current_v = get(V, state, default_value)
+            V[state] = current_v + α * (target - current_v)
         end
+
+        # Update the terminal state (last state in the episode)
+        terminal_state = episode[end][1]
+        terminal_reward = episode[end][2]  # Final reward (win/lose/draw)
+        terminal_v = get(V, terminal_state, default_value)
+        V[terminal_state] = terminal_v + α * (terminal_reward - terminal_v)
     end
     return V
 end
 
-#"""
-#Evaluate the policy by playing num_episodes episodes and calculating the average reward
-#"""
-#function evaluate_policy(num_episodes::Int, player_policy_threshold::Int)
-#    total_reward = 0
-#    for _ in 1:num_episodes
-#        episode = play_episode(player_policy_threshold)
-#        total_reward += episode[end][2]
-#    end
-#    return total_reward / num_episodes
-#end
-#
-#for player_policy_threshold in 12:21
-#    avg_reward = evaluate_policy(100000, player_policy_threshold)
-#    println("Player policy threshold: ", player_policy_threshold, " -> Average reward: ", avg_reward)
-#end
-
-
-@time V = mc_prediction(50_000, 20)
-@time V = mc_prediction_alpha(50000, 20, 0.1)
+@time V = td_prediction(50_000, 20, 0.01)
 
 
 # Filter for reasonable player sums
@@ -183,6 +136,7 @@ p2 = surface(player_sums_non_usable, dealer_cards_non_usable, est_values_non_usa
 
 # Arrange the plots side by side
 plot(p1, p2, layout=(1, 2), size=(900, 400))
+
 
 
 
