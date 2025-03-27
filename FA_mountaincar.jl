@@ -230,7 +230,7 @@ positions, velocities, steps = visualize_policy_space(env, trained_w)
 ## Create animation
 anim = @animate for i in eachindex(positions)
     # Two subplots
-    p1 = plot(title="Mountain Car Trajectory",
+    p1 = plot(title="Phase Space",
         xlabel="Position",
         ylabel="Velocity",
         xlims=(POSITION_MIN, POSITION_MAX),
@@ -250,18 +250,17 @@ anim = @animate for i in eachindex(positions)
         markersize=5)
 
     # Second subplot for mountain curve visualization
-    p2 = plot(title="Mountain Curve Position",
-        xlabel="Horizontal Position",
-        ylabel="Height",
+    p2 = plot(
         xlims=(POSITION_MIN, POSITION_MAX),
         ylims=(-1.2, 1),
-        legend=false)
+        legend=false
+    )
     # Mountain curve with current position
     x = range(POSITION_MIN, POSITION_MAX, length=100)
-    y = -cos.(3 * x .+ 1.5)
-    plot!(p2, x, y, color=:green, label="Mountain Curve")
+    y = sin.(3 * x)
+    plot!(p2, x, y)
 
-    scatter!(p2, [positions[i]], [-cos.(3 * positions[i] .+ 1.5)],
+    scatter!(p2, [positions[i]], [sin.(3 * positions[i])],
         color=:red,
         markersize=5,
         label="Car Position")
