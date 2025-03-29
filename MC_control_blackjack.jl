@@ -141,9 +141,6 @@ function mc_control(num_episodes::Int, epsilon::Float64)
     return Q, optimal_policy
 end
 
-# Run MC Control
-@time Q, optimal_policy = mc_control(20_000_000, 0.01)
-
 function simulate_games(optimal_policy, num_episodes)
     total_reward = 0.0
 
@@ -215,14 +212,21 @@ function plot_policy(optimal_policy)
         xlabel="Dealer Card", ylabel="Player Sum", color=:viridis, clim=(0, 1))
     p2 = heatmap(dealer_cards, player_sums, non_usable_ace_grid, title="No Usable Ace Policy",
         xlabel="Dealer Card", ylabel="Player Sum", color=:viridis, clim=(0, 1))
-    plot(p1, p2, layout=(1, 2), size=(800, 400))
+    # Combine and save
+    combined_plot = plot(p1, p2, layout=(1, 2), size=(1000, 500))
+    #savefig(combined_plot, "blackjack_policy_heatmaps.png")
+
+    # Optionally display the plot
+    display(combined_plot)
 end
 
+
+# Run MC Control
+@time Q, optimal_policy = mc_control(20_000_000, 0.008)
+# Visualize the optimal policy
+plot_policy(optimal_policy)
 
 # Play games and evaluate the policy
 average = simulate_games(optimal_policy, 100_000)
 println("Average reward over 100,000 games: ", round(average, digits=3))
 detailed_simulation(optimal_policy, 100_000)
-
-# Visualize the optimal policy
-plot_policy(optimal_policy)
