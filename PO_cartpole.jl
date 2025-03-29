@@ -154,13 +154,16 @@ function create_cartpole_animation(policy, env; max_steps=400)
     return anim
 end
 
-# Set up CartPole environment and parameters
-env = CartPoleEnv(; T=Float32, max_steps=400)
+# --------------------------
+# Training Setup
+# --------------------------
+max_steps = 400
+env = CartPoleEnv(; T=Float32, max_steps=max_steps)
 action_space_vals = action_space(env)
 action_dim = length(action_space_vals)
 state_dim = length(ReinforcementLearning.state(env))
 h_dim = 32
-max_steps = 400
+
 
 # Instantiate a policy
 policy = Policy(state_dim, action_dim, h_dim)
@@ -172,7 +175,7 @@ gif_path = "cartpole_animation.gif"
 gif(anim, gif_path, fps=30)
 
 # Plot Results
-plot(1:length(rewards), rewards,
+scatter(1:length(rewards), rewards,
     label="Episode Reward",
     xlabel="Episode",
     ylabel="Reward",
